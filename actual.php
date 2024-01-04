@@ -8,27 +8,25 @@
     echo $e->getMessage();
   }
 
-$actual = $_GET['actual'];
-$id = $_GET['number'];
+  $actual = $_GET['actual'];
+  $id = $_GET['number'];
  
 
-switch ($actual){
-  case 'true':
-    $actual = 1;
-    break;
-  case 'false':
-    $actual = 0;
-    break;
-}
+  switch ($actual){
+    case 'true':
+      $actual = 1;
+      break;
+    case 'false':
+      $actual = 0;
+      break;
+  }
 
-$sql = "update PLAN_LIST
-        set
-          ACTUAL = " . $actual."
-        where  
-         ID_PLAN = ".$id;
+  $sql = "update PLAN_LIST
+          set ACTUAL = " . $actual."
+          where ID_PLAN = ".$id;
 
-$stmt = $fire_conn->prepare($sql);
-$stmt->execute();
+  $stmt = $fire_conn->prepare($sql);
+  $stmt->execute();
 
-header("Location: planing.php");
+  header("Location: planing.php");
 ?>

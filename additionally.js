@@ -64,8 +64,10 @@ function FormEditRow(ID_ROW) {
   LabelForEditProduct.style.fontSize='35px';
   LabelForEditProduct.value = LabelText.trim();
   LabelForEditProduct.name = 'name_product';
+  LabelForEditProduct.id = 'name_product';
   LabelForEditProduct.setAttribute('autocomplete','off');
-  LabelForEditProduct.setAttribute('placeholder', 'Назва продукту')
+  LabelForEditProduct.setAttribute('placeholder', 'Назва продукту');
+  LabelForEditProduct.setAttribute('oninput', 'clearInvalidClass(this)');
   
   //Получение цены продукта
   var price_input = document.createElement('input');
@@ -98,7 +100,7 @@ function FormEditRow(ID_ROW) {
   if (document.getElementById(ID_ROW+'LINK') == null){
     link_value = "";  
   } else {
-    link_value = document.getElementById(ID_ROW+'LINK').getAttribute('href');
+    link_value = document.getElementById(ID_ROW+'LINK').href;
   }
   
   //Поле с ссылкой
@@ -203,17 +205,26 @@ function FormEditRow(ID_ROW) {
 }
 //Отправка данных формы на сервер из FormEditRow
 function submit_edit(event){
-  event.preventDefault();
-  
-  let EditFormData = new FormData(document.getElementById('FormEdit'));
-  
-  EditedRow = new XMLHttpRequest();
-  EditedRow.open('POST', 'edit.php', true);
-  EditedRow.onreadystatechange = UpdateTableWithEditList;
-  
-  let Overlay = document.getElementById('overlay');
-  document.body.removeChild(Overlay);
-  EditedRow.send(EditFormData);
+  let inputNameProduct = document.getElementById('name_product');
+  if(inputNameProduct.value == ''){
+    inputNameProduct.classList.add('invalid');
+    event.preventDefault();
+    setTimeout(function() {
+      inputNameProduct.classList.remove('invalid');
+    }, 500);
+  } else {
+    inputNameProduct.classList.remove('invalid');
+    
+    let EditFormData = new FormData(document.getElementById('FormEdit'));
+    
+    EditedRow = new XMLHttpRequest();
+    EditedRow.open('POST', 'edit.php', true);
+    EditedRow.onreadystatechange = UpdateTableWithEditList;
+    
+    let Overlay = document.getElementById('overlay');
+    document.body.removeChild(Overlay);
+    EditedRow.send(EditFormData); 
+  }
 }
 //Обновление таблицы фоново
 function UpdateTableWithEditList() {
@@ -242,11 +253,12 @@ function UpdateTableWithEditList() {
           nameCell.classList.add('column2');
         } else {
           const nameCell = InsertNewRow.insertCell();
-          const NameIsHref = document.createElement('a');
+          nameCell.id = EditRowData[i]['ID_PRODUCT'] + 'NB';
           
+          const NameIsHref = document.createElement('a');
           NameIsHref.innerHTML = EditRowData[i]['NAME_PRODUCT'];
           NameIsHref.href = EditRowData[i]['LINK'];
-          NameIsHref.id = EditRowData[i]['ID_PRODUCT'] + 'NB';
+          NameIsHref.id = EditRowData[i]['ID_PRODUCT'] + 'LINK';
           NameIsHref.classList.add('column2');
           
           nameCell.appendChild(NameIsHref);
@@ -271,15 +283,17 @@ function UpdateTableWithEditList() {
         const FormatDataCreate = FormatDate(EditRowData[i]['DATACREATE']);
         DataCreateCell.innerHTML = FormatDataCreate;
         DataCreateCell.id = EditRowData[i]['ID_PRODUCT'] + 'DC';
+        DataCreateCell.classList.add('column6');
         
         const DataLastEditCell = InsertNewRow.insertCell();
         const FormatDateLastEdit = FormatDate(EditRowData[i]['DATALASTEDIT']);
         DataLastEditCell.innerHTML = FormatDateLastEdit;
         DataLastEditCell.id = EditRowData[i]['ID_PRODUCT'] + 'DLE';
+        DataLastEditCell.classList.add('column7');
         
 
         const buttonsCell = InsertNewRow.insertCell();
-        buttonsCell.classList.add('column6');
+        buttonsCell.classList.add('column8');
         buttonsCell.id = EditRowData[i]['ID_PRODUCT'] + 'check';
         
         if(EditRowData[i]['ISBOUGHT'] == 1){
@@ -298,17 +312,20 @@ function UpdateTableWithEditList() {
         DeleteButton.id = EditRowData[i]['ID_PRODUCT'] + 'delete';
         DeleteButton.setAttribute('onclick', 'DeleteRow(' + EditRowData[i]['ID_PRODUCT'] + ', "' + EditRowData[i]['NAME_PRODUCT'] + '")');
         buttonsCell.appendChild(EditButton);
-
-        var BRElement = document.createElement('br');
-        buttonsCell.appendChild(BRElement);
-
         buttonsCell.appendChild(DeleteButton);
         
         if (EditRowData[i]['ISBOUGHT'] == 0) {
           InsertNewRow.classList.add('IsBought');
         }
       }
-      document.getElementById('CostSum').innerHTML = Response.Sum;
+      let CookieTable = getlocalStorageCookie("theme");
+      if (CookieTable == "dark"){
+        SetDarkTheme('theme', 'dark', '1');
+      }
+      
+      if (CookieTable == "light"){
+        SetLightThemeTheme('theme', 'light', '1');
+      }
     }
   }
 }
@@ -351,11 +368,13 @@ function FormAddRow(){
   //Создание полей для ввода
   var InputNameProduct = document.createElement('input');
   InputNameProduct.setAttribute('type', 'text');
+  InputNameProduct.id = 'name_product';
   InputNameProduct.setAttribute('placeholder', 'Назва продукту');
   InputNameProduct.setAttribute('name', 'name_product');
   InputNameProduct.setAttribute('autocomplete','off');
   InputNameProduct.setAttribute('required', 'required');
   InputNameProduct.style.fontSize = '20px';
+  InputNameProduct.setAttribute('oninput', 'clearInvalidClass(this)');
 
   var InputPriceProduct = document.createElement('input');
   InputPriceProduct.setAttribute('type', 'number');
@@ -465,21 +484,29 @@ function FormAddRow(){
       document.removeEventListener("keydown", onKeyPress);
     }
   }
-  document.addEventListener("keydown", onKeyPress);
+  document.addEventListener("Escape", onKeyPress);
 }
 //Проверка формы и отправка на сервер из FormAddRow
 function SubmitAdd(event) {
-  event.preventDefault();
-  
-  let FormAddRow = new FormData(document.getElementById('FormAdd'));
-  
-  NewRow = new XMLHttpRequest();
-  NewRow.open('POST', 'add.php', true);
-  NewRow.onreadystatechange = UpdateTableWithAdd;
-  NewRow.send(FormAddRow);
-  
-  let Overlay = document.getElementById('overlay');
-  document.body.removeChild(Overlay);
+  let inputNameProduct = document.getElementById('name_product');
+  if(inputNameProduct.value == ''){
+    inputNameProduct.classList.add('invalid');
+    event.preventDefault();
+    setTimeout(function() {
+      inputNameProduct.classList.remove('invalid');
+    }, 500);
+  } else {
+    inputNameProduct.classList.remove('invalid');
+    let FormAddRow = new FormData(document.getElementById('FormAdd'));
+    
+    NewRow = new XMLHttpRequest();
+    NewRow.open('POST', 'add.php', true);
+    NewRow.onreadystatechange = UpdateTableWithAdd;
+    NewRow.send(FormAddRow);
+    
+    let Overlay = document.getElementById('overlay');
+    document.body.removeChild(Overlay);
+  }
 }
 // Фоновое обновление добавленного ряда
 function UpdateTableWithAdd() {
@@ -508,11 +535,12 @@ function UpdateTableWithAdd() {
           nameCell.classList.add('column2');
         } else {
           const nameCell = InsertNewRow.insertCell();
+          nameCell.id = NewRowData[i]['ID_PRODUCT']+'NB';
           const NameIsHref = document.createElement('a');
           
           NameIsHref.innerHTML = NewRowData[i]['NAME_PRODUCT'];
           NameIsHref.href = NewRowData[i]['LINK'];
-          NameIsHref.id = NewRowData[i]['ID_PRODUCT'] + 'NB';
+          NameIsHref.id = NewRowData[i]['ID_PRODUCT'] + 'LINK';
           NameIsHref.classList.add('column2');
           
           nameCell.appendChild(NameIsHref);
@@ -537,14 +565,16 @@ function UpdateTableWithAdd() {
         const FormatDataCreate = FormatDate(NewRowData[i]['DATACREATE']);
         DataCreateCell.innerHTML = FormatDataCreate;
         DataCreateCell.id = NewRowData[i]['ID_PRODUCT'] + 'DC';
+        DataCreateCell.classList.add('column6');
         
         const DataLastEditCell = InsertNewRow.insertCell();
         const FormatDateLastEdit = FormatDate(NewRowData[i]['DATALASTEDIT']);
         DataLastEditCell.innerHTML = FormatDateLastEdit;
         DataLastEditCell.id = NewRowData[i]['ID_PRODUCT'] + 'DLE';
+        DataLastEditCell.classList.add('column7');
 
         const buttonsCell = InsertNewRow.insertCell();
-        buttonsCell.classList.add('column6');
+        buttonsCell.classList.add('column8');
         buttonsCell.id = NewRowData[i]['ID_PRODUCT'] + 'check';
         
         if(NewRowData[i]['ISBOUGHT'] == 1){
@@ -564,9 +594,6 @@ function UpdateTableWithAdd() {
         DeleteButton.setAttribute('onclick', 'DeleteRow(' + NewRowData[i]['ID_PRODUCT'] + ', "' + NewRowData[i]['NAME_PRODUCT'] + '")');
         buttonsCell.appendChild(EditButton);
 
-        var BRElement = document.createElement('br');
-        buttonsCell.appendChild(BRElement);
-
         buttonsCell.appendChild(DeleteButton);
         
         if (NewRowData[i]['ISBOUGHT'] == 0) {
@@ -574,6 +601,14 @@ function UpdateTableWithAdd() {
         }
       }
       document.getElementById('CostSum').innerHTML = Response.Sum;
+      let CookieTable = getlocalStorageCookie("theme");
+      if (CookieTable == "dark"){
+        SetDarkTheme('theme', 'dark', '1');
+      }
+      
+      if (CookieTable == "light"){
+        SetLightThemeTheme('theme', 'light', '1');
+      }
     }
   }
 }
@@ -705,14 +740,16 @@ function UpdateTableAfterDelete(){
         const FormatDataCreate = FormatDate(RowData[i]['DATACREATE']);
         DataCreateCell.innerHTML = FormatDataCreate;
         DataCreateCell.id = RowData[i]['ID_PRODUCT'] + 'DC';
+        DataCreateCell.classList.add('column6');
         
         const DataLastEditCell = InsertNewRow.insertCell();
         const FormatDateLastEdit = FormatDate(RowData[i]['DATALASTEDIT']);
         DataLastEditCell.innerHTML = FormatDateLastEdit;
         DataLastEditCell.id = RowData[i]['ID_PRODUCT'] + 'DLE';
-
+        DataLastEditCell.classList.add('column7');
+        
         const buttonsCell = InsertNewRow.insertCell();
-        buttonsCell.classList.add('column6');
+        buttonsCell.classList.add('column8');
         buttonsCell.id = RowData[i]['ID_PRODUCT'] + 'check';
         
         if(RowData[i]['ISBOUGHT'] == 1){
@@ -732,14 +769,20 @@ function UpdateTableAfterDelete(){
         DeleteButton.setAttribute('onclick', 'DeleteRow(' + RowData[i]['ID_PRODUCT'] + ', "' + RowData[i]['NAME_PRODUCT'] + '")');
         buttonsCell.appendChild(EditButton);
 
-        var BRElement = document.createElement('br');
-        buttonsCell.appendChild(BRElement);
-
         buttonsCell.appendChild(DeleteButton);
         
         if (RowData[i]['ISBOUGHT'] == 0) {
           InsertNewRow.classList.add('IsBought');
         }
+      }
+      
+      let CookieTable = getlocalStorageCookie("theme");
+      if (CookieTable == "dark"){
+        SetDarkTheme('theme', 'dark', '1');
+      }
+      
+      if (CookieTable == "light"){
+        SetLightThemeTheme('theme', 'light', '1');
       }
     }
   }
@@ -800,6 +843,15 @@ function UpdateTableWithAddedPlan() {
 
   // Отправляем запрос для получения обновленной страницы с планами
   xhr.send();
+  
+  let CookieTable = getlocalStorageCookie("plan");
+  if (CookieTable == "dark"){
+    SetDarkThemePlan('plan', 'dark', '1');
+  }
+      
+  if (CookieTable == "light"){
+    SetLightThemeTheme('plan', 'light', '1');
+  }
 }
 //Форма добавления плана
 function addrowplan(){
@@ -820,6 +872,7 @@ function addrowplan(){
   NamePlan.setAttribute('required', 'required');
   NamePlan.setAttribute('name', 'NamePlan');
   NamePlan.setAttribute('autocomplete','off');
+  NamePlan.setAttribute('placeholder', 'Назва плану');
   
   const ButtonSubmit = document.createElement('button');
   ButtonSubmit.setAttribute('onclick', 'submit_plan();');
@@ -1055,4 +1108,263 @@ function FormatDate(dateString) {
   const year = date.getFullYear();
 
   return `${day}.${month}.${year}`;
+}
+
+function SetDarkTheme(name, value, minutes){
+  //const expirationDate = new Date();
+  //expirationDate.setTime(expirationDate.getTime() + (minutes * 60));
+  //const expires = "expires=" + expirationDate.toUTCString();
+  //document.cookie = name + "=" + value + ";" + expires;
+  localStorage.setItem(name, value);
+  
+  let MainBody = document.body;
+  MainBody.classList.add('darkbody');
+  
+  let NamePlan = document.getElementById('name_plan');
+  NamePlan.classList.add('darkhead');
+  
+  let NavElement = document.getElementById('navelement');
+  NavElement.classList.add('darknavlink');
+  
+  let THElement = document.querySelectorAll('thead th');
+  for (let i = 0; i < THElement.length; i++){
+    THElement[i].classList.add('darkth');
+  }
+  
+  let TBodyRows = document.querySelectorAll('tbody tr');
+  for (let i = 0; i < TBodyRows.length; i++){
+    if (!TBodyRows[i].classList.contains('IsBought')){
+      TBodyRows[i].classList.add('darktr');
+    } else{
+      TBodyRows[i].classList.add('darktrIsBought');
+    }
+  }
+  
+  let tbodyCell = document.querySelectorAll('tbody tr');
+  let cellsInRow = [];
+
+  for (let i = 0; i < tbodyCell.length; i++){
+    cellsInRow[i] = tbodyCell[i];
+    cellsInRow[i].classList.add('darklink');
+  }
+  
+  let TFootRow = document.querySelectorAll('tfoot tr');
+  for (let i = 0; i < TFootRow.length; i++){
+    TFootRow[i].classList.add('darktfoot');
+  }
+  
+  let ButtonElement = document.querySelectorAll('button');
+  for (let i = 0; i < ButtonElement.length; i++){
+    ButtonElement[i].classList.add('darkbutton');
+  }
+}
+
+function SetLightTheme(name, value, minutes){
+  //const expirationDate = new Date();
+  //expirationDate.setTime(expirationDate.getTime() + (minutes * 60));
+  //const expires = "expires=" + expirationDate.toUTCString();
+  //document.cookie = name + "=" + value + ";" + expires;
+  localStorage.setItem(name, value);
+  
+  let MainBody = document.body;
+  MainBody.classList.remove('darkbody');
+  MainBody.removeAttribute('class');
+  
+  let NamePlan = document.getElementById('name_plan');
+  NamePlan.classList.remove('darkhead');
+  NamePlan.removeAttribute('class');
+  
+  let NavElement = document.getElementById('navelement');
+  NavElement.classList.remove('darknavlink');
+  NavElement.removeAttribute('class');
+  
+  let THElement = document.querySelectorAll('thead th');
+  for (let i = 0; i < THElement.length; i++){
+    THElement[i].classList.remove('darkth');
+    THElement[i].removeAttribute('class');
+  }
+  
+  let TBodyRows = document.querySelectorAll('tbody tr');
+  for (let i = 0; i < TBodyRows.length; i++){
+    if (!TBodyRows[i].classList.contains('IsBought')){
+      TBodyRows[i].classList.remove('darktr');
+      TBodyRows[i].removeAttribute('class');
+    } else{
+      TBodyRows[i].classList.remove('darktrIsBought');
+      TBodyRows[i].classList.remove('darklink');
+    }
+  }
+  
+  let TFootRow = document.querySelectorAll('tfoot tr');
+  for (let i = 0; i < TFootRow.length; i++){
+    TFootRow[i].classList.remove('darktfoot');
+    TFootRow[i].removeAttribute('class');
+  }
+  
+  let ButtonElement = document.querySelectorAll('button');
+  for (let i = 0; i < ButtonElement.length; i++){
+    ButtonElement[i].classList.remove('darkbutton');
+    ButtonElement[i].removeAttribute('class');
+  }
+}
+
+function CheckCookie(){
+  let cookie = getlocalStorageCookie("theme");
+  let name = "theme";
+  let mybody = document.body;
+  if (cookie == "dark"){
+    //document.cookie = name + "=" + cookie + "; max-age=60; path=/";
+    localStorage.setItem(name, cookie);
+    SetDarkTheme('theme', 'dark', 1);  
+  } else {
+    //document.cookie = name + "=" + cookie + "; max-age=60; path=/";
+    localStorage.setItem(name, cookie);
+    SetLightTheme('theme', 'light', 1);    
+  }
+}
+
+function getlocalStorageCookie(name) {
+  const storedValue = localStorage.getItem(name);
+  if (storedValue) {
+    return storedValue;
+  }
+
+  const decodedCookie = decodeURIComponent(document.cookie);
+  const cookiesArray = decodedCookie.split("; ");
+  for (const cookie of cookiesArray) {
+    const [cookieName, cookieValue] = cookie.split("=");
+    if (cookieName === name) {
+      return cookieValue;
+    }
+  }
+  return null;
+}
+
+
+// Установка тем на planing.php
+function SetLightThemePlan(name, value, minutes){
+  //const expirationDate = new Date();
+  //expirationDate.setTime(expirationDate.getTime() + (minutes * 60));
+  //const expires = "expires=" + expirationDate.toUTCString();
+  //document.cookie = name + "=" + value + ";" + expires;
+  localStorage.setItem(name, value);
+  let MainBody = document.body;
+  MainBody.classList.remove('darkbodyplan');
+  
+  let aElements = document.querySelectorAll('nav');
+  for (let i = 0; i < aElements.length; i++){
+    aElements[i].classList.remove('darknavlink');
+  }
+  
+  let tbodyRows = document.querySelectorAll('tbody tr');
+  for (i = 0; i < tbodyRows.length; i++){
+    tbodyRows[i].classList.remove('darktr');
+  }
+  
+  let thElement = document.querySelectorAll('thead th');
+  for (let i = 0; i < thElement.length; i++){
+    thElement[i].classList.remove('darkth');
+  }
+  
+  let hElement = document.querySelector('h1');
+  hElement.classList.remove('darkheadplan');
+  
+  let tbodyCell = document.querySelectorAll('tbody tr');
+  let cellsInRow = [];
+
+  for (let i = 0; i < tbodyCell.length; i++){
+    cellsInRow[i] = tbodyCell[i];
+    cellsInRow[i].classList.remove('darklink');
+  }  
+  
+  let div = document.querySelector('div');
+  div.classList.remove('darklink');
+  let bElement = document.getElementsByTagName('b');
+  let addClassElement = bElement[0];
+  addClassElement.classList.remove('textcolor');
+  
+  let button = document.querySelector('button');
+  button.classList.remove('darkbuttonplan');     
+}
+
+function SetDarkThemePlan(name, value, minutes){
+  //const expirationDate = new Date();
+  //expirationDate.setTime(expirationDate.getTime() + (minutes * 60));
+  //const expires = "expires=" + expirationDate.toUTCString();
+  //document.cookie = name + "=" + value + ";" + expires;
+  localStorage.setItem(name, value);
+
+  let MainBody = document.body;
+  MainBody.classList.add('darkbodyplan');
+
+  let hElement = document.querySelector('h1');
+  hElement.classList.add('darkheadplan');
+  
+  let aElements = document.querySelectorAll('nav');
+  for (let i = 0; i < aElements.length; i++){
+    aElements[i].classList.add('darknavlink');
+  }
+  
+  let thElement = document.querySelectorAll('thead th');
+  for (let i = 0; i < thElement.length; i++){
+    thElement[i].classList.add('darkth');
+  }
+  
+  let tbodyCell = document.querySelectorAll('tbody tr');
+  let cellsInRow = [];
+
+  for (let i = 0; i < tbodyCell.length; i++){
+    cellsInRow[i] = tbodyCell[i];
+    cellsInRow[i].classList.add('darklink');
+  }
+  
+  let tbodyRows = document.querySelectorAll('tbody tr');
+  for (i = 0; i < tbodyRows.length; i++){
+    tbodyRows[i].classList.add('darktr');
+  }
+  
+  let div = document.querySelector('div');
+  div.classList.add('darklink');
+  let bElement = document.getElementsByTagName('b');
+  let addClassElement = bElement[0];
+  addClassElement.classList.add('textcolor');
+  
+  let button = document.querySelector('button');
+  button.classList.add('darkbuttonplan'); 
+}
+
+function CheckCookiePlan(){
+let cookie = getlocalStorageCookiePlan("plan");
+  let name = "plan";
+  let mybody = document.body;
+  if (cookie == "dark"){
+    //document.cookie = name + "=" + cookie + "; max-age=60; path=/";
+    localStorage.setItem(name, cookie);
+    SetDarkThemePlan('plan', 'dark', 1);  
+  } else {
+    //document.cookie = name + "=" + cookie + "; max-age=60; path=/";
+    localStorage.setItem(name, cookie);
+    SetLightThemePlan('plan', 'light', 1);    
+  }  
+}
+
+function getlocalStorageCookiePlan(name){
+  const storedValue = localStorage.getItem(name);
+  if (storedValue) {
+    return storedValue;
+  }
+
+  const decodedCookie = decodeURIComponent(document.cookie);
+  const cookiesArray = decodedCookie.split("; ");
+  for (const cookie of cookiesArray) {
+    const [cookieName, cookieValue] = cookie.split("=");
+    if (cookieName === name) {
+      return cookieValue;
+    }
+  }
+  return null;  
+}
+
+function clearInvalidClass(inputElement) {
+  inputElement.classList.remove('invalid');
 }
